@@ -94,7 +94,6 @@ public:
 
     /**
      * @brief Stops the queue and unblocks all waiting operations.
-     *
      * After calling stop(), any waiting push() or pop() calls are unblocked.
      * push() will return immediately without inserting items.
      * pop() and pop_for() will return std::nullopt if the queue is empty.

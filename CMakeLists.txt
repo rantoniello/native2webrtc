@@ -107,13 +107,9 @@ install(TARGETS native2webrtc
 
 
 add_executable(streamer-example
-    "${PROJECT_SOURCE_DIR}/src/draft/main.cpp" 
-	"${PROJECT_SOURCE_DIR}/src/draft/dispatchqueue.cpp" 
-	"${PROJECT_SOURCE_DIR}/src/draft/dispatchqueue.hpp" 
-	"${PROJECT_SOURCE_DIR}/src/draft/helpers.cpp" 
-	"${PROJECT_SOURCE_DIR}/src/draft/helpers.hpp" 
-	"${PROJECT_SOURCE_DIR}/src/draft/stream.cpp" 
-	"${PROJECT_SOURCE_DIR}/src/draft/stream.hpp" 
+    "${PROJECT_SOURCE_DIR}/src/utils/BlockingQueue.h"
+    "${PROJECT_SOURCE_DIR}/src/WebRTCStreamer.cpp"
+    "${PROJECT_SOURCE_DIR}/src/draft/main.cpp"
 )
 add_dependencies(streamer-example libdatachannel-proj)
 target_link_libraries(streamer-example libdatachannel libwebsockets.so libavutil.so libavdevice.so libavformat.so libavcodec.so)
