@@ -1,2 +1,2 @@
-# native2webrtc
+# webrtcStreamer
 Essay: native c++ WebRTC 'server' peer streaming video to several HTML+JS 'client' peers
