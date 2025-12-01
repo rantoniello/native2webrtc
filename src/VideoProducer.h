@@ -1,21 +1,8 @@
 /**
  */
 
-#include <nlohmann/json.hpp>
-#include <chrono>
 #include <thread>
-#include <mutex>
-#include <shared_mutex>
-#include <atomic>
-#include <optional>
-#include <sys/time.h>
 #include <rtc/rtc.hpp>
-
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/opt.h>
-}
 
 using namespace std;
 

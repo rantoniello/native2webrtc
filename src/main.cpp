@@ -4,8 +4,8 @@
 #include <atomic>
 #include <signal.h>
 #include <rtc/rtc.hpp>
-#include "../VideoProducer.h"
-#include "../WebRTCStreamer.h"
+#include "VideoProducer.h"
+#include "WebRTCStreamer.h"
 
 using namespace std;
 using namespace rtc;
@@ -21,7 +21,7 @@ int main(int argc, char **argv) try
     sigset_t set;
     sigfillset(&set);
     sigdelset(&set, SIGTERM);
-    sigdelset(&set, SIGINT); // Typically CTRL^c
+    sigdelset(&set, SIGINT);
     pthread_sigmask(SIG_SETMASK, &set, NULL);
     signal(SIGTERM, sig_handler_term);
     signal(SIGINT, sig_handler_term);
@@ -35,13 +35,11 @@ int main(int argc, char **argv) try
         streamer.pushData((void*const)data, size);
     });
 
-    while (!do_term) {
+    while (!do_term)
         this_thread::sleep_for(chrono::seconds(1));
-    }
 
     cout << "Cleaning up..." << endl;
     return 0;
-
 } catch (const std::exception &e) {
     std::cout << "Error: " << e.what() << std::endl;
     return -1;

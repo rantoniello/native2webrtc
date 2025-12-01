@@ -79,7 +79,8 @@ ExternalProject_Add(libdatachannel-proj
 )
 add_dependencies(libdatachannel-proj libwebsockets openssl json)
 add_library(libdatachannel SHARED IMPORTED)
-set_target_properties(libdatachannel PROPERTIES IMPORTED_LOCATION "${LIBDIR}/libdatachannel.so")
+set_target_properties(libdatachannel PROPERTIES IMPORTED_LOCATION 
+    "${LIBDIR}/libdatachannel.so")
 
 add_custom_command(
   TARGET libdatachannel-proj 
@@ -91,29 +92,15 @@ add_custom_command(
 # Program
 ##############################################################################
 
-add_executable(native2webrtc
-    "${PROJECT_SOURCE_DIR}/src/native2webrtc.cpp"
-)
-add_dependencies(native2webrtc libdatachannel-proj)
-target_link_libraries(native2webrtc libdatachannel libwebsockets.so libavutil.so libavdevice.so libavformat.so libavcodec.so)
-target_include_directories(native2webrtc PUBLIC
-    $<BUILD_INTERFACE:${INCLUDEDIR}>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/Release
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/Debug>
-)
-install(TARGETS native2webrtc
-    RUNTIME DESTINATION "${BINDIR}"
-)
-
-
 add_executable(streamer-example
     "${PROJECT_SOURCE_DIR}/src/utils/BlockingQueue.h"
     "${PROJECT_SOURCE_DIR}/src/VideoProducer.cpp"
     "${PROJECT_SOURCE_DIR}/src/WebRTCStreamer.cpp"
-    "${PROJECT_SOURCE_DIR}/src/draft/main.cpp"
+    "${PROJECT_SOURCE_DIR}/src/main.cpp"
 )
 add_dependencies(streamer-example libdatachannel-proj)
-target_link_libraries(streamer-example libdatachannel libwebsockets.so libavutil.so libavdevice.so libavformat.so libavcodec.so)
+target_link_libraries(streamer-example libdatachannel libwebsockets.so 
+    libavutil.so libavdevice.so libavformat.so libavcodec.so)
 target_include_directories(streamer-example PUBLIC
     $<BUILD_INTERFACE:${INCLUDEDIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/Release
@@ -123,12 +110,8 @@ install(TARGETS streamer-example
     RUNTIME DESTINATION "${BINDIR}"
 )
 
-
-
-
-
 add_executable(wsserver
-    "${PROJECT_SOURCE_DIR}/src/draft/wsserver.cpp"
+    "${PROJECT_SOURCE_DIR}/src/wsserver.cpp"
 )
 add_dependencies(wsserver libdatachannel-proj)
 target_link_libraries(wsserver libwebsockets.so)

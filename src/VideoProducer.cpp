@@ -5,6 +5,16 @@
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
+#include <chrono>
+#include <mutex>
+#include <optional>
+#include <sys/time.h>
+
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
+}
 
 VideoProducer::VideoProducer(
         function<void(const uint8_t *data, size_t size)> onSample,
@@ -17,7 +27,7 @@ VideoProducer::VideoProducer(
 
 VideoProducer::~VideoProducer()
 {
-    printf("======================== %s %d\n", __FILE__, __LINE__); fflush(stdout); //FIXME!!
+    _videoThread.join();
 }
 
 static void dump2file(const uint8_t *data, size_t size)
