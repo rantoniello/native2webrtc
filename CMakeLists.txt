@@ -108,6 +108,7 @@ install(TARGETS native2webrtc
 
 add_executable(streamer-example
     "${PROJECT_SOURCE_DIR}/src/utils/BlockingQueue.h"
+    "${PROJECT_SOURCE_DIR}/src/VideoProducer.cpp"
     "${PROJECT_SOURCE_DIR}/src/WebRTCStreamer.cpp"
     "${PROJECT_SOURCE_DIR}/src/draft/main.cpp"
 )

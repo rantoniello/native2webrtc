@@ -61,9 +61,6 @@ using namespace std;
  *     - collecting outbound messages from Clients.
  * - Each Client may internally spawn or use additional WebRTC-specific threads
  *   (handled within rtc::PeerConnection events).
- *
- * @note Thread-safety is ensured through shared_mutex `_publicApiMutex` and
- * per-client `_publicApiMutex`.
  */
 class WebRTCStreamer {
 public:
@@ -96,7 +93,9 @@ private:
         /**
          * @param stunServer STUN server URL used for ICE gathering.
          */
-        Client(const string& stunServer);
+        Client(const string& id, const string& stunServer);
+
+        ~Client();
 
         /**
          * @brief Pushes a signaling message destined for this Client.
@@ -118,16 +117,25 @@ private:
         optional<string> signalingGet(chrono::milliseconds timeout);
 
         /**
-         * Send multimedia/data frame to remote peer.
+         * Send video(/audio) frame to remote peer.
          */
-        void sendFrame(const void *data, size_t size, rtc::FrameInfo info);
+        void sendFrame(const byte *data, size_t size, rtc::FrameInfo info);
 
     private:
-        shared_mutex _publicApiMutex;  ///< Public interface access MUTEX
-        string _id;                    ///< Unique remote peer identifier.
+        /// Unique remote peer identifier.
+        string _id;
 
         /// Underlying WebRTC PeerConnection for this client.
         shared_ptr<rtc::PeerConnection> _peerConnection;
+
+        /// Video track
+        shared_ptr<rtc::Track> videoTrack;
+
+        /// Video track public interface access MUTEX
+        shared_mutex _publicTrackMutex;
+
+        /// Data track
+        shared_ptr<rtc::DataChannel> dataChannel;
 
         /** @name Client's signaling Infrastructure
          *  Queues used for asynchronous communication with WebRTCStreamer.
@@ -140,6 +148,9 @@ private:
         thread _signalingThread; ///< Optional per-client signaling thread.
         string _stunServer; ///< STUN server used for ICE candidate gathering.
         /** @} */
+
+        /// Signals class instance termination
+        atomic_bool _do_term;
     };
 
     shared_mutex _publicApiMutex; ///< Public interface access MUTEX
@@ -159,8 +170,8 @@ private:
     /// Signaling WebSocket.
     shared_ptr<rtc::WebSocket> _signalingWS;
 
-    /// Queue for inbound global signaling messages.
-    BlockingQueue<string> _signalingQueueIn;
+    /// Queue for i/o signaling messages.
+    BlockingQueue<string> _signalingQueue;
 
     /// Main signaling processing method.
     void _signalingThr();
@@ -172,24 +183,41 @@ private:
     /** @name Multimedia processing/sending related
      *  @{
      */
-    class Frame {
-    public:
-        Frame(void *data, size_t size) :
+    struct Frame {
+        Frame(void *data, size_t size, uint64_t sampleTime_usec) :
+                buf(size),
                 data(reinterpret_cast<const void*>(this->buf.data())),
                 size(size),
-                buf(size)
+                sampleTime_usec(sampleTime_usec)
         {
             if (data != nullptr && size > 0)
-                memcpy(this->data, data, size);
+                memcpy(this->buf.data(), data, size);
         }
+        vector<std::byte> buf;
         const void *data;
         size_t size;
-    private:
-        vector<std::byte> buf;
+        uint64_t sampleTime_usec;
     };
+//    class Frame {
+//    public:
+//        Frame(void *data, size_t size, uint64_t sampleTime_usec) :
+//                size(size),
+//                buf(size),
+//                data(reinterpret_cast<const void*>(this->buf.data())),
+//                sampleTime_usec(sampleTime_usec)
+//        {
+//            if (data != nullptr && size > 0)
+//                memcpy(this->buf.data(), data, size);
+//        }
+//        const void *data;
+//        size_t size;
+//        uint64_t sampleTime_usec;
+//    private:
+//        vector<std::byte> buf;
+//    };
 
-    /// Queue for inbound global signaling messages.
-    BlockingQueue<WebRTCStreamer::Frame> _framesQueueIn;
+    /// Queue for input multimedia frames
+    BlockingQueue<shared_ptr<WebRTCStreamer::Frame>> _framesQueueIn;
 
     /// Main multimedia processing method.
     void _multimediaThr();
