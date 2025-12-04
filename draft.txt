@@ -1,0 +1,126 @@
+Perfect! I’ll write a **full C++ example** showing how to:
+
+1. Encode frames (H.264 with x264 in libav context).
+2. Handle **B-frames** using a **reorder buffer**.
+3. Send frames via **libdatachannel’s `sendFrame()`** using proper **RTP timestamps**.
+
+This will be structured to be ready to integrate into your WebRTC pipeline.
+
+---
+
+```cpp
+#include <queue>
+#include <vector>
+#include <algorithm>
+#include <cstdint>
+#include <iostream>
+
+// Mock of libdatachannel sendFrame (replace with actual libdatachannel call)
+void sendFrameToPeer(const std::vector<uint8_t>& data, uint32_t rtpTimestamp) {
+    std::cout << "Sending frame, RTP timestamp: " << rtpTimestamp
+              << ", size: " << data.size() << std::endl;
+}
+
+// Frame structure
+struct Frame {
+    uint64_t pts_ms;             // presentation timestamp in milliseconds
+    std::vector<uint8_t> data;   // encoded frame data
+};
+
+// Comparator for min-heap (smallest PTS on top)
+struct FrameCompare {
+    bool operator()(const Frame& a, const Frame& b) {
+        return a.pts_ms > b.pts_ms;
+    }
+};
+
+// Reorder buffer to handle B-frames
+class FrameReorderBuffer {
+public:
+    FrameReorderBuffer(size_t maxSize) : maxBufferSize(maxSize) {}
+
+    // Push a new frame into the buffer
+    void pushFrame(const Frame& frame) {
+        buffer.push(frame);
+        flushFrames();
+    }
+
+    // Pop frames ready for sending
+    std::vector<Frame> popReadyFrames() {
+        std::vector<Frame> ready;
+        ready.swap(readyFrames);
+        return ready;
+    }
+
+private:
+    size_t maxBufferSize;
+    std::priority_queue<Frame, std::vector<Frame>, FrameCompare> buffer;
+    std::vector<Frame> readyFrames;
+
+    void flushFrames() {
+        // Keep buffer size reasonable to avoid blocking indefinitely
+        while (buffer.size() > maxBufferSize) {
+            Frame frame = buffer.top();
+            buffer.pop();
+            readyFrames.push_back(frame);
+        }
+
+        // Optional: flush frames older than a threshold (for lost packet handling)
+    }
+};
+
+// Convert PTS (ms) to RTP timestamp (90kHz clock)
+uint32_t ptsToRtpTimestamp(uint64_t pts_ms) {
+    return static_cast<uint32_t>(pts_ms * 90);
+}
+
+// Example usage
+int main() {
+    // Suppose we allow 2 B-frames, so buffer at least 3 frames
+    FrameReorderBuffer reorderBuffer(3);
+
+    // Simulate encoding frames (out of order due to B-frames)
+    reorderBuffer.pushFrame({102, {0x01, 0x02}});
+    reorderBuffer.pushFrame({100, {0x03, 0x04}});
+    reorderBuffer.pushFrame({101, {0x05, 0x06}});
+
+    // Pop ready frames (in display order)
+    auto framesToSend = reorderBuffer.popReadyFrames();
+
+    // Send via libdatachannel sendFrame
+    for (const auto& f : framesToSend) {
+        uint32_t rtpTimestamp = ptsToRtpTimestamp(f.pts_ms);
+        sendFrameToPeer(f.data, rtpTimestamp);
+    }
+
+    return 0;
+}
+```
+
+---
+
+### ✅ How this works
+
+1. **Reorder buffer** handles B-frames by storing frames until we can safely send them in **display order**.
+2. **PTS → RTP timestamp conversion** ensures the receiver knows when to display each frame.
+3. **`sendFrameToPeer`** is a placeholder for libdatachannel’s actual `sendFrame()` method.
+
+---
+
+### 5. **Integration Tips**
+
+* Set x264 parameters for B-frames:
+
+```c
+av_opt_set(ctx->priv_data, "x264-params",
+           "bframes=2:sync-lookahead=5:scenecut=0:repeat-headers=1", 0);
+```
+
+* Ensure **buffer size ≥ B-frames + 1**.
+* For **low-latency WebRTC**, you may still want `bframes=0` to avoid this complexity.
+
+---
+
+I can also extend this example to **handle lost RTP packets and flush frames after a timeout**, which is often needed in real WebRTC networks.
+
+Do you want me to add that?
